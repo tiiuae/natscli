@@ -51,8 +51,8 @@ import (
 	"github.com/nats-io/jsm.go"
 	"github.com/nats-io/jsm.go/api"
 	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nuid"
+	"github.com/tiiuae/nats.go"
 	"golang.org/x/exp/constraints"
 	terminal "golang.org/x/term"
 

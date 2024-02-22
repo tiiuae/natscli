@@ -28,7 +28,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/ghodss/yaml"
 	"github.com/nats-io/jsm.go/natscontext"
-	"github.com/nats-io/nats.go"
+	"github.com/tiiuae/nats.go"
 )
 
 type ctxCommand struct {

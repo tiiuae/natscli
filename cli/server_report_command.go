@@ -26,7 +26,7 @@ import (
 	"github.com/expr-lang/expr/vm"
 	"github.com/fatih/color"
 	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/nats.go"
+	"github.com/tiiuae/nats.go"
 )
 
 type SrvReportCmd struct {

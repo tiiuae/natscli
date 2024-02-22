@@ -29,7 +29,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/gosuri/uiprogress"
 	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/nats.go"
+	"github.com/tiiuae/nats.go"
 )
 
 type objCommand struct {

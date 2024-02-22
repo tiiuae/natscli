@@ -28,7 +28,7 @@ import (
 
 	"github.com/HdrHistogram/hdrhistogram-go"
 	"github.com/choria-io/fisk"
-	"github.com/nats-io/nats.go"
+	"github.com/tiiuae/nats.go"
 	histwriter "github.com/tylertreat/hdrhistogram-writer"
 )
 

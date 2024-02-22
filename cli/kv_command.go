@@ -28,8 +28,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/nats.go"
 	"github.com/nats-io/natscli/columns"
+	"github.com/tiiuae/nats.go"
 )
 
 type kvCommand struct {

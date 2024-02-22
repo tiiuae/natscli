@@ -22,7 +22,7 @@ import (
 
 	"github.com/choria-io/fisk"
 	"github.com/dustin/go-humanize"
-	"github.com/nats-io/nats.go"
+	"github.com/tiiuae/nats.go"
 )
 
 type trafficCmd struct {

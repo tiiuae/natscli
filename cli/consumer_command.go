@@ -32,7 +32,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/google/go-cmp/cmp"
 	"github.com/nats-io/jsm.go/api"
-	"github.com/nats-io/nats.go"
+	"github.com/tiiuae/nats.go"
 
 	"github.com/nats-io/jsm.go"
 )
