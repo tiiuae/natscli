@@ -28,7 +28,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/gosuri/uiprogress"
-	"github.com/nats-io/jsm.go"
+	"github.com/tiiuae/jsm.go"
 	"github.com/tiiuae/nats.go"
 )
 

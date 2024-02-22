@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/choria-io/fisk"
-	"github.com/nats-io/jsm.go/api"
+	"github.com/tiiuae/jsm.go/api"
 )
 
 type schemaReqCmd struct {

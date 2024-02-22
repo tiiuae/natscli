@@ -27,8 +27,8 @@ import (
 	"text/template"
 
 	"github.com/choria-io/fisk"
-	"github.com/nats-io/jsm.go/natscontext"
-	"github.com/nats-io/nats-server/v2/server"
+	"github.com/tiiuae/jsm.go/natscontext"
+	"github.com/tiiuae/nats-server/v2/server"
 	"golang.org/x/crypto/bcrypt"
 )
 

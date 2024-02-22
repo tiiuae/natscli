@@ -28,9 +28,9 @@ This file lists the dependencies used in this repository.
 | github.com/matttproud/golang_protobuf_extensions | Apache License 2.0                      |
 | github.com/mgutz/ansi                            | MIT License                             |
 | github.com/minio/highwayhash                     | Apache License 2.0                      |
-| github.com/nats-io/jsm.go                        | Apache License 2.0                      |
+| github.com/tiiuae/jsm.go                        | Apache License 2.0                      |
 | github.com/nats-io/jwt                           | Apache License 2.0                      |
-| github.com/nats-io/nats-server                   | Apache License 2.0                      |
+| github.com/tiiuae/nats-server                   | Apache License 2.0                      |
 | github.com/tiiuae/nats.go                       | Apache License 2.0                      |
 | github.com/nats-io/nkeys                         | Apache License 2.0                      |
 | github.com/nats-io/nuid                          | Apache License 2.0                      |

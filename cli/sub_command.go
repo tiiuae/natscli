@@ -28,8 +28,8 @@ import (
 
 	"github.com/choria-io/fisk"
 	"github.com/dustin/go-humanize"
-	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/nats-server/v2/server"
+	"github.com/tiiuae/jsm.go"
+	"github.com/tiiuae/nats-server/v2/server"
 	"github.com/tiiuae/nats.go"
 )
 

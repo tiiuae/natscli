@@ -31,10 +31,10 @@ import (
 	"github.com/choria-io/fisk"
 	"github.com/dustin/go-humanize"
 	"github.com/google/go-cmp/cmp"
-	"github.com/nats-io/jsm.go/api"
+	"github.com/tiiuae/jsm.go/api"
 	"github.com/tiiuae/nats.go"
 
-	"github.com/nats-io/jsm.go"
+	"github.com/tiiuae/jsm.go"
 )
 
 type consumerCmd struct {

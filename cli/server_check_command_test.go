@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/jsm.go/api"
-	"github.com/nats-io/nats-server/v2/server"
+	"github.com/tiiuae/jsm.go"
+	"github.com/tiiuae/jsm.go/api"
+	"github.com/tiiuae/nats-server/v2/server"
 	"github.com/tiiuae/nats.go"
 	"github.com/tiiuae/natscli/monitor"
 )

@@ -26,8 +26,8 @@ import (
 	"github.com/choria-io/fisk"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
-	"github.com/nats-io/nats-server/v2/server"
 	ab "github.com/synadia-io/jwt-auth-builder.go"
+	"github.com/tiiuae/nats-server/v2/server"
 )
 
 type authAccountCommand struct {

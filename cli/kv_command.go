@@ -27,7 +27,7 @@ import (
 	"github.com/choria-io/fisk"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
-	"github.com/nats-io/jsm.go"
+	"github.com/tiiuae/jsm.go"
 	"github.com/tiiuae/nats.go"
 	"github.com/tiiuae/natscli/columns"
 )

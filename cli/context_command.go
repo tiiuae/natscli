@@ -27,7 +27,7 @@ import (
 	"github.com/choria-io/fisk"
 	"github.com/fatih/color"
 	"github.com/ghodss/yaml"
-	"github.com/nats-io/jsm.go/natscontext"
+	"github.com/tiiuae/jsm.go/natscontext"
 	"github.com/tiiuae/nats.go"
 )
 

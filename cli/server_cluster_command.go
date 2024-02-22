@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/choria-io/fisk"
-	"github.com/nats-io/jsm.go/api"
-	"github.com/nats-io/jsm.go/connbalancer"
-	"github.com/nats-io/nats-server/v2/server"
+	"github.com/tiiuae/jsm.go/api"
+	"github.com/tiiuae/jsm.go/connbalancer"
+	"github.com/tiiuae/nats-server/v2/server"
 )
 
 type SrvClusterCmd struct {

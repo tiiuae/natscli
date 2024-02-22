@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/choria-io/fisk"
-	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/jsm.go/natscontext"
+	"github.com/tiiuae/jsm.go"
+	"github.com/tiiuae/jsm.go/natscontext"
 	"github.com/tiiuae/nats.go"
 )
 

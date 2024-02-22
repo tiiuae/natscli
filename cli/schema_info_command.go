@@ -18,7 +18,7 @@ import (
 
 	"github.com/choria-io/fisk"
 	"github.com/ghodss/yaml"
-	"github.com/nats-io/jsm.go/api"
+	"github.com/tiiuae/jsm.go/api"
 )
 
 type schemaInfoCmd struct {

@@ -17,8 +17,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/nats-io/jsm.go/api"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/tiiuae/jsm.go/api"
 )
 
 type SchemaValidator struct{}

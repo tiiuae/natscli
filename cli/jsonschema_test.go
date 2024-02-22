@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nats-io/jsm.go/api"
+	"github.com/tiiuae/jsm.go/api"
 )
 
 type mockValidator interface {

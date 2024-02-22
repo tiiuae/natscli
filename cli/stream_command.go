@@ -37,8 +37,8 @@ import (
 	"github.com/emicklei/dot"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gosuri/uiprogress"
-	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/jsm.go/api"
+	"github.com/tiiuae/jsm.go"
+	"github.com/tiiuae/jsm.go/api"
 	"github.com/tiiuae/nats.go"
 	"github.com/tiiuae/natscli/columns"
 	"gopkg.in/yaml.v3"
@@ -972,7 +972,7 @@ func (c *streamCmd) restoreAction(_ *fisk.ParseContext) error {
 
 		// we need to confirm this new config has the same stream
 		// name as the snapshot else the server state can get confused
-		// see https://github.com/nats-io/nats-server/issues/2850
+		// see https://github.com/tiiuae/nats-server/issues/2850
 		if bm.Config.Name != cfg.Name {
 			return fmt.Errorf("stream names may not be changed during restore")
 		}

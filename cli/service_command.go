@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/choria-io/fisk"
-	"github.com/nats-io/jsm.go/api"
+	"github.com/tiiuae/jsm.go/api"
 	"github.com/tiiuae/nats.go"
 	"github.com/tiiuae/nats.go/micro"
 )

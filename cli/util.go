@@ -48,15 +48,15 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/klauspost/compress/s2"
 	"github.com/mattn/go-isatty"
-	"github.com/nats-io/jsm.go"
-	"github.com/nats-io/jsm.go/api"
-	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nuid"
+	"github.com/tiiuae/jsm.go"
+	"github.com/tiiuae/jsm.go/api"
+	"github.com/tiiuae/nats-server/v2/server"
 	"github.com/tiiuae/nats.go"
 	"golang.org/x/exp/constraints"
 	terminal "golang.org/x/term"
 
-	"github.com/nats-io/jsm.go/natscontext"
+	"github.com/tiiuae/jsm.go/natscontext"
 )
 
 var (
