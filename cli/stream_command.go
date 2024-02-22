@@ -39,8 +39,8 @@ import (
 	"github.com/gosuri/uiprogress"
 	"github.com/nats-io/jsm.go"
 	"github.com/nats-io/jsm.go/api"
-	"github.com/nats-io/natscli/columns"
 	"github.com/tiiuae/nats.go"
+	"github.com/tiiuae/natscli/columns"
 	"gopkg.in/yaml.v3"
 )
 

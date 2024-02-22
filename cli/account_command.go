@@ -29,8 +29,8 @@ import (
 	"github.com/nats-io/jsm.go"
 	"github.com/nats-io/jsm.go/api"
 	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/natscli/columns"
 	"github.com/tiiuae/nats.go"
+	"github.com/tiiuae/natscli/columns"
 )
 
 type actCmd struct {

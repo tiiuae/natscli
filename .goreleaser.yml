@@ -58,7 +58,7 @@ brews:
       owner: nats-io
       name: homebrew-nats-tools
       token: "{{ .Env.GITHUB_APP_TOKEN }}"
-    url_template: "https://github.com/nats-io/natscli/releases/download/{{ .Tag }}/nats-{{.Version}}-{{ .Os }}-{{ .Arch }}{{if .Arm}}{{.Arm}}{{end}}.zip"
+    url_template: "https://github.com/tiiuae/natscli/releases/download/{{ .Tag }}/nats-{{.Version}}-{{ .Os }}-{{ .Arch }}{{if .Arm}}{{.Arm}}{{end}}.zip"
     homepage: "https://github.com/nats-io/nats"
     description: "NATS utility"
     skip_upload: false
@@ -68,8 +68,8 @@ brews:
       bin.install "nats"
 
 nfpms:
-  - file_name_template: 'nats-{{.Version}}-{{.Arch}}{{if .Arm}}{{.Arm}}{{end}}'
-    homepage:  https://nats.io
+  - file_name_template: "nats-{{.Version}}-{{.Arch}}{{if .Arm}}{{.Arm}}{{end}}"
+    homepage: https://nats.io
     description: NATS Utility
     maintainer: R.I. Pienaar <rip@devco.net>
     license: Apache 2.0

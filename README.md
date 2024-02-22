@@ -18,7 +18,7 @@ and support full JetStream management.
 
 ### Installation
 
-Releases are [published to GitHub](https://github.com/nats-io/natscli/releases/) where zip, rpm and debs for various
+Releases are [published to GitHub](https://github.com/tiiuae/natscli/releases/) where zip, rpm and debs for various
 operating systems can be found.
 
 #### Installation via go install
@@ -27,13 +27,13 @@ The nats cli can be installed directly via `go install`.
 To install the latest version:
 
 ```
-go install github.com/nats-io/natscli/nats@latest
+go install github.com/tiiuae/natscli/nats@latest
 ```
 
 To install a specific release:
 
 ```
-go install github.com/nats-io/natscli/nats@v0.0.33
+go install github.com/tiiuae/natscli/nats@v0.0.33
 ```
 
 #### OS X installation via Homebrew

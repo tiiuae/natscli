@@ -24,8 +24,8 @@ import (
 	"github.com/nats-io/jsm.go"
 	"github.com/nats-io/jsm.go/api"
 	"github.com/nats-io/nats-server/v2/server"
-	"github.com/nats-io/natscli/monitor"
 	"github.com/tiiuae/nats.go"
+	"github.com/tiiuae/natscli/monitor"
 )
 
 func assertHasPDItem(t *testing.T, check *monitor.Result, items ...string) {

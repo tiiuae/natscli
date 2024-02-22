@@ -22,9 +22,9 @@ import (
 	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/nats-io/natscli/columns"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
+	"github.com/tiiuae/natscli/columns"
 )
 
 type RenderFormat int
