@@ -28,12 +28,12 @@ require (
 	github.com/prometheus/common v0.46.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/synadia-io/jwt-auth-builder.go v0.0.0-20240207150459-d022830ddff4
-	github.com/tiiuae/jsm.go v0.0.0-20240222213849-9eba367f5166
-	github.com/tiiuae/nats-server/v2 v2.0.0-20240222211935-176ed7037a03
-	github.com/tiiuae/nats.go v0.0.0-20240222161647-f42e2401f03f
+	github.com/tiiuae/jsm.go v0.0.0-20240223111604-2bdf3e4efd2c
+	github.com/tiiuae/nats-server/v2 v2.0.0-20240223111140-158afbdd1178
+	github.com/tiiuae/nats.go v0.0.0-20240223111024-b660fd2f9b3b
 	github.com/tylertreat/hdrhistogram-writer v0.0.0-20210816161836-2e440612a39f
 	golang.org/x/crypto v0.19.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/term v0.17.0
 	gopkg.in/gizak/termui.v1 v1.0.0-20151021151108-e62b5929642a
 	gopkg.in/yaml.v3 v3.0.1
