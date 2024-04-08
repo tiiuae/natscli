@@ -150,6 +150,7 @@ type streamCmd struct {
 	selectedStream *jsm.Stream
 	nc             *nats.Conn
 	mgr            *jsm.Manager
+	chunkSize      string
 }
 
 type streamStat struct {
@@ -370,6 +371,7 @@ Finding streams with certain subjects configured:
 	strBackup.Flag("progress", "Enables or disables progress reporting using a progress bar").Default("true").BoolVar(&c.showProgress)
 	strBackup.Flag("check", "Checks the Stream for health prior to backup").UnNegatableBoolVar(&c.healthCheck)
 	strBackup.Flag("consumers", "Enable or disable consumer backups").Default("true").BoolVar(&c.snapShotConsumers)
+	strBackup.Flag("chunk-size", "Sets a specific chunk size that the server will send").PlaceHolder("BYTES").Default("128KB").StringVar(&c.chunkSize)
 
 	strRestore := str.Command("restore", "Restore a Stream over the NATS network").Action(c.restoreAction)
 	strRestore.Arg("file", "The directory holding the backup to restore").Required().ExistingDirVar(&c.backupDirectory)
@@ -941,9 +943,17 @@ func (c *streamCmd) restoreAction(_ *fisk.ParseContext) error {
 
 	var progress *uiprogress.Bar
 	var bps uint64
+	var prevMsg time.Time
 
 	cb := func(p jsm.RestoreProgress) {
 		bps = p.BytesPerSecond()
+
+		if opts.Trace && (p.ChunksSent()%100 == 0 || time.Since(prevMsg) > 500*time.Millisecond) {
+			fmt.Printf("Sent %v chunk %v / %v at %v / s\n", fiBytes(uint64(p.ChunkSize())), p.ChunksSent(), p.ChunksToSend(), fiBytes(p.BytesPerSecond()))
+			return
+		}
+
+		prevMsg = time.Now()
 
 		if progress == nil {
 			progress = uiprogress.AddBar(p.ChunksToSend()).AppendCompleted().PrependFunc(func(b *uiprogress.Bar) string {
@@ -955,13 +965,16 @@ func (c *streamCmd) restoreAction(_ *fisk.ParseContext) error {
 		progress.Set(int(p.ChunksSent()))
 	}
 
-	var opts []jsm.SnapshotOption
+	var ropts []jsm.SnapshotOption
 
 	if c.showProgress {
-		uiprogress.Start()
-		opts = append(opts, jsm.RestoreNotify(cb))
+		if !opts.Trace {
+			uiprogress.Start()
+		}
+
+		ropts = append(ropts, jsm.RestoreNotify(cb))
 	} else {
-		opts = append(opts, jsm.SnapshotDebug())
+		ropts = append(ropts, jsm.SnapshotDebug())
 	}
 
 	if c.inputFile != "" {
@@ -991,11 +1004,11 @@ func (c *streamCmd) restoreAction(_ *fisk.ParseContext) error {
 		cfg.Replicas = int(c.replicas)
 	}
 
-	opts = append(opts, jsm.RestoreConfiguration(*cfg))
+	ropts = append(ropts, jsm.RestoreConfiguration(*cfg))
 
 	fmt.Printf("Starting restore of Stream %q from file %q\n\n", bm.Config.Name, c.backupDirectory)
 
-	fp, _, err := mgr.RestoreSnapshotFromDirectory(ctx, bm.Config.Name, c.backupDirectory, opts...)
+	fp, _, err := mgr.RestoreSnapshotFromDirectory(ctx, bm.Config.Name, c.backupDirectory, ropts...)
 	fisk.FatalIfError(err, "restore failed")
 	if c.showProgress {
 		progress.Set(int(fp.ChunksSent()))
@@ -1014,7 +1027,7 @@ func (c *streamCmd) restoreAction(_ *fisk.ParseContext) error {
 	return nil
 }
 
-func backupStream(stream *jsm.Stream, showProgress bool, consumers bool, check bool, target string) error {
+func backupStream(stream *jsm.Stream, showProgress bool, consumers bool, check bool, target string, chunkSize int) error {
 	first := true
 	inprogress := true
 	pmu := sync.Mutex{}
@@ -1023,11 +1036,17 @@ func backupStream(stream *jsm.Stream, showProgress bool, consumers bool, check b
 	var progress *uiprogress.Progress
 	expected := 1
 	timedOut := false
+	var prevMsg time.Time
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	timeout := time.AfterFunc(5*time.Second, func() {
+	idleTimeout := 5 * time.Second
+	if opts.Timeout > idleTimeout {
+		idleTimeout = opts.Timeout
+	}
+
+	timeout := time.AfterFunc(idleTimeout, func() {
 		cancel()
 		timedOut = true
 	})
@@ -1058,12 +1077,20 @@ func backupStream(stream *jsm.Stream, showProgress bool, consumers bool, check b
 			first = false
 		}
 
-		if p.ChunksReceived() != received {
-			timeout.Reset(5 * time.Second)
-			received = p.ChunksReceived()
+		bps = p.BytesPerSecond()
+
+		if opts.Trace {
+			if first {
+				fmt.Printf("Received %s chunk %s\n", fiBytes(uint64(p.ChunkSize())), f(p.ChunksReceived()))
+			} else {
+				fmt.Printf("Received %s chunk %s with time delta %s\n", fiBytes(uint64(p.ChunkSize())), f(p.ChunksReceived()), time.Since(prevMsg))
+			}
 		}
 
-		bps = p.BytesPerSecond()
+		if p.ChunksReceived() != received {
+			timeout.Reset(idleTimeout)
+			received = p.ChunksReceived()
+		}
 
 		if showProgress {
 			bar.Set(int(p.BytesReceived()))
@@ -1080,12 +1107,21 @@ func backupStream(stream *jsm.Stream, showProgress bool, consumers bool, check b
 			}
 			pmu.Unlock()
 		}
+
+		prevMsg = time.Now()
 	}
 
-	var opts []jsm.SnapshotOption
+	sopts := []jsm.SnapshotOption{
+		jsm.SnapshotChunkSize(chunkSize),
+	}
 
 	if consumers {
-		opts = append(opts, jsm.SnapshotConsumers())
+		sopts = append(sopts, jsm.SnapshotConsumers())
+	}
+
+	if opts.Trace {
+		sopts = append(sopts, jsm.SnapshotDebug())
+		showProgress = false
 	}
 
 	if showProgress {
@@ -1093,13 +1129,13 @@ func backupStream(stream *jsm.Stream, showProgress bool, consumers bool, check b
 		progress.Start()
 	}
 
-	opts = append(opts, jsm.SnapshotNotify(cb))
+	sopts = append(sopts, jsm.SnapshotNotify(cb))
 
 	if check {
-		opts = append(opts, jsm.SnapshotHealthCheck())
+		sopts = append(sopts, jsm.SnapshotHealthCheck())
 	}
 
-	fp, err := stream.SnapshotToDirectory(ctx, target, opts...)
+	fp, err := stream.SnapshotToDirectory(ctx, target, sopts...)
 	if err != nil {
 		return err
 	}
@@ -1134,7 +1170,15 @@ func (c *streamCmd) backupAction(_ *fisk.ParseContext) error {
 		return err
 	}
 
-	err = backupStream(stream, c.showProgress, c.snapShotConsumers, c.healthCheck, c.backupDirectory)
+	chunkSize := int64(128 * 1024)
+	if c.chunkSize != "" {
+		chunkSize, err = parseStringAsBytes(c.chunkSize)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = backupStream(stream, c.showProgress, c.snapShotConsumers, c.healthCheck, c.backupDirectory, int(chunkSize))
 	fisk.FatalIfError(err, "snapshot failed")
 
 	return nil
@@ -1604,6 +1648,8 @@ func (c *streamCmd) copyAndEditStream(cfg api.StreamConfig, pc *fisk.ParseContex
 		if c.subjectTransformDest != "" {
 			subjectTransformConfig.Destination = c.subjectTransformDest
 		}
+
+		cfg.SubjectTransform = &subjectTransformConfig
 	}
 
 	return cfg, nil
@@ -1728,9 +1774,7 @@ func (c *streamCmd) editAction(pc *fisk.ParseContext) error {
 		fmt.Printf("Stream %s was updated\n\n", c.stream)
 	}
 
-	c.showStream(sourceStream)
-
-	return nil
+	return c.showStream(sourceStream)
 }
 
 func (c *streamCmd) cpAction(pc *fisk.ParseContext) error {
@@ -1853,6 +1897,8 @@ func (c *streamCmd) showStreamConfig(cols *columns.Writer, cfg api.StreamConfig)
 	} else {
 		cols.AddRow("Maximum Consumers", cfg.MaxConsumers)
 	}
+	cols.AddRowIf("Consumer Inactive Threshold", cfg.ConsumerLimits.InactiveThreshold, cfg.ConsumerLimits.InactiveThreshold > 0)
+	cols.AddRowIf("Consumer Max Ack Pending", cfg.ConsumerLimits.MaxAckPending, cfg.ConsumerLimits.MaxAckPending > 0)
 
 	if len(cfg.Metadata) > 0 {
 		cols.AddSectionTitle("Metadata")
@@ -2051,13 +2097,13 @@ func (c *streamCmd) showStreamInfo(info *api.StreamInfo) {
 	if info.State.FirstTime.Equal(time.Unix(0, 0)) || info.State.FirstTime.IsZero() {
 		cols.AddRow("First Sequence", info.State.FirstSeq)
 	} else {
-		cols.AddRowf("First Sequence", "%s @ %s UTC", f(info.State.FirstSeq), f(info.State.FirstTime))
+		cols.AddRowf("First Sequence", "%s @ %s", f(info.State.FirstSeq), f(info.State.FirstTime))
 	}
 
 	if info.State.LastTime.Equal(time.Unix(0, 0)) || info.State.LastTime.IsZero() {
 		cols.AddRow("Last Sequence", info.State.LastSeq)
 	} else {
-		cols.AddRowf("Last Sequence", "%s @ %s UTC", f(info.State.LastSeq), f(info.State.LastTime))
+		cols.AddRowf("Last Sequence", "%s @ %s", f(info.State.LastSeq), f(info.State.LastTime))
 	}
 
 	if len(info.State.Deleted) > 0 { // backwards compat with older servers

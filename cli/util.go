@@ -99,7 +99,11 @@ func selectConsumer(mgr *jsm.Manager, stream string, consumer string, force bool
 			return "", nil, err
 		}
 
-		return c, nil, nil
+		con, err := mgr.LoadConsumer(stream, c)
+		if err != nil {
+			return "", nil, err
+		}
+		return con.Name(), con, err
 	}
 }
 
@@ -424,7 +428,7 @@ func newNatsConnUnlocked(servers string, copts ...nats.Option) (*nats.Conn, erro
 	}
 
 	if opts.Config == nil {
-		err := loadContext()
+		err := loadContext(false)
 		if err != nil {
 			return nil, err
 		}
@@ -496,7 +500,7 @@ func prepareHelperUnlocked(servers string, copts ...nats.Option) (*nats.Conn, *j
 	var err error
 
 	if opts.Config == nil {
-		err = loadContext()
+		err = loadContext(false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -531,7 +535,6 @@ func prepareHelperUnlocked(servers string, copts ...nats.Option) (*nats.Conn, *j
 		jsopts = append(jsopts, jsm.WithTrace())
 	}
 
-	opts.Conn.NewRespInbox()
 	opts.Mgr, err = jsm.New(opts.Conn, jsopts...)
 	if err != nil {
 		return nil, nil, err
@@ -737,7 +740,7 @@ func parseStringsToMsgHeader(hdrs []string, seq int, msg *nats.Msg) error {
 	return nil
 }
 
-func loadContext() error {
+func loadContext(softFail bool) error {
 	ctxOpts := []natscontext.Option{
 		natscontext.WithServerURL(opts.Servers),
 		natscontext.WithCreds(opts.Creds),
@@ -748,6 +751,7 @@ func loadContext() error {
 		natscontext.WithWindowsCertStore(opts.WinCertStoreType),
 		natscontext.WithWindowsCertStoreMatch(opts.WinCertStoreMatch),
 		natscontext.WithWindowsCertStoreMatchBy(opts.WinCertStoreMatchBy),
+		natscontext.WithWindowsCaCertsMatch(opts.WinCertCaStoreMatch...),
 		natscontext.WithSocksProxy(opts.SocksProxy),
 		natscontext.WithJSEventPrefix(opts.JsEventPrefix),
 		natscontext.WithJSAPIPrefix(opts.JsApiPrefix),
@@ -774,6 +778,10 @@ func loadContext() error {
 		opts.Config, err = natscontext.NewFromFile(opts.CfgCtx, ctxOpts...)
 	} else {
 		opts.Config, err = natscontext.New(opts.CfgCtx, !SkipContexts, ctxOpts...)
+	}
+
+	if err != nil && softFail {
+		opts.Config, err = natscontext.New(opts.CfgCtx, false, ctxOpts...)
 	}
 
 	return err

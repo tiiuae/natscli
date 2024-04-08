@@ -15,11 +15,12 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
-	"sort"
+	"strconv"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -31,53 +32,74 @@ import (
 )
 
 type authAccountCommand struct {
-	accountName          string
-	advertise            bool
-	advertiseIsSet       bool
-	bearerAllowed        bool
-	connTypes            []string
-	defaults             bool
-	description          string
-	descriptionIsSet     bool
-	expiry               time.Duration
-	exportName           string
-	force                bool
-	isService            bool
-	jetStream            bool
-	listNames            bool
-	locale               string
-	maxAckPending        int64
-	maxConns             int64
-	maxConsumers         int64
-	maxExports           int64
-	maxImports           int64
-	maxLeafnodes         int64
-	maxPayload           int64
-	maxPayloadString     string
-	maxStreams           int64
-	maxSubs              int64
-	memMax               int64
-	memMaxStream         int64
-	memMaxStreamString   string
-	memMaxString         string
-	operatorName         string
-	output               string
-	pubAllow             []string
-	pubDeny              []string
-	showJWT              bool
-	skRole               string
-	storeMax             int64
-	storeMaxStream       int64
-	storeMaxStreamString string
-	storeMaxString       string
-	streamSizeRequired   bool
-	subAllow             []string
-	subDeny              []string
-	subject              string
-	tokenPosition        uint
-	tokenRequired        bool
-	tokenRequiredIsSet   bool
-	url                  *url.URL
+	accountName             string
+	advertise               bool
+	advertiseIsSet          bool
+	bearerAllowed           bool
+	bearerAllowedIsSet      bool
+	connTypes               []string
+	defaults                bool
+	description             string
+	descriptionIsSet        bool
+	expiry                  time.Duration
+	exportName              string
+	force                   bool
+	isService               bool
+	jetStream               bool
+	jetStreamIsSet          bool
+	listNames               bool
+	locale                  string
+	maxAckPending           int64
+	maxAckPendingIsSet      bool
+	maxConns                int64
+	maxConnsIsSet           bool
+	maxConsumers            int64
+	maxConsumersIsSet       bool
+	maxExports              int64
+	maxExportsIsSet         bool
+	maxImports              int64
+	maxImportsIsSet         bool
+	maxLeafnodes            int64
+	maxLeafNodesIsSet       bool
+	maxPayload              int64
+	maxPayloadString        string
+	maxStreams              int64
+	maxStreamsIsSet         bool
+	maxSubs                 int64
+	maxSubIsSet             bool
+	memMax                  int64
+	memMaxStream            int64
+	memMaxStreamString      string
+	memMaxString            string
+	operatorName            string
+	output                  string
+	pubAllow                []string
+	pubDeny                 []string
+	showJWT                 bool
+	skRole                  string
+	storeMax                int64
+	storeMaxStream          int64
+	storeMaxStreamString    string
+	storeMaxString          string
+	streamSizeRequired      bool
+	streamSizeRequiredIsSet bool
+	subAllow                []string
+	subDeny                 []string
+	subject                 string
+	tokenPosition           uint
+	tokenRequired           bool
+	tokenRequiredIsSet      bool
+	url                     *url.URL
+	importName              string
+	localSubject            string
+	activationToken         string
+	share                   bool
+	shareIsSet              bool
+	allowTrace              bool
+	allowTraceIsSet         bool
+	importAccount           string
+	bucketName              string
+	prefix                  string
 }
 
 func configureAuthAccountCommand(auth commandHost) {
@@ -86,28 +108,29 @@ func configureAuthAccountCommand(auth commandHost) {
 	// TODO:
 	//   - rm is written but builder doesnt remove from disk https://github.com/synadia-io/jwt-auth-builder.go/issues/22
 	//	 - edit should diff and prompt
-	//   - imports/exports
+	//   - imports/exports when asking for account nkey should detect account name and look it up
+	//	 - when rendering account pubkeys like in import/export info get the account name and show
 
 	acct := auth.Command("account", "Manage NATS Accounts").Alias("a").Alias("acct")
 
 	addCreateFlags := func(f *fisk.CmdClause, edit bool) {
 		f.Flag("expiry", "How long this account should be valid for as a duration").PlaceHolder("DURATION").DurationVar(&c.expiry)
-		f.Flag("bearer", "Allows bearer tokens").Default("false").BoolVar(&c.bearerAllowed)
-		f.Flag("subscriptions", "Maximum allowed subscriptions").Default("-1").Int64Var(&c.maxSubs)
-		f.Flag("connections", "Maximum allowed connections").Default("-1").Int64Var(&c.maxConns)
-		f.Flag("payload", "Maximum allowed payload").PlaceHolder("BYTES").StringVar(&c.maxPayloadString)
-		f.Flag("leafnodes", "Maximum allowed Leafnode connections").Default("-1").Int64Var(&c.maxLeafnodes)
-		f.Flag("imports", "Maximum allowed imports").Default("-1").Int64Var(&c.maxImports)
-		f.Flag("exports", "Maximum allowed exports").Default("-1").Int64Var(&c.maxExports)
-		f.Flag("jetstream", "Enables JetStream").Default("false").UnNegatableBoolVar(&c.jetStream)
-		f.Flag("js-streams", "Sets the maximum Streams the account can have").Default("-1").Int64Var(&c.maxStreams)
-		f.Flag("js-consumers", "Sets the maximum Consumers the account can have").Default("-1").Int64Var(&c.maxConsumers)
+		f.Flag("bearer", "Allows bearer tokens").Default("false").IsSetByUser(&c.bearerAllowedIsSet).BoolVar(&c.bearerAllowed)
+		f.Flag("subscriptions", "Maximum allowed subscriptions").Default("-1").IsSetByUser(&c.maxSubIsSet).Int64Var(&c.maxSubs)
+		f.Flag("connections", "Maximum allowed connections").Default("-1").IsSetByUser(&c.maxConnsIsSet).Int64Var(&c.maxConns)
+		f.Flag("payload", "Maximum allowed payload").PlaceHolder("BYTES").Default("-1").StringVar(&c.maxPayloadString)
+		f.Flag("leafnodes", "Maximum allowed Leafnode connections").Default("-1").IsSetByUser(&c.maxLeafNodesIsSet).Int64Var(&c.maxLeafnodes)
+		f.Flag("imports", "Maximum allowed imports").Default("-1").IsSetByUser(&c.maxImportsIsSet).Int64Var(&c.maxImports)
+		f.Flag("exports", "Maximum allowed exports").Default("-1").IsSetByUser(&c.maxExportsIsSet).Int64Var(&c.maxExports)
+		f.Flag("jetstream", "Enables JetStream").Default("false").IsSetByUser(&c.jetStreamIsSet).BoolVar(&c.jetStream)
+		f.Flag("js-streams", "Sets the maximum Streams the account can have").Default("-1").IsSetByUser(&c.maxStreamsIsSet).Int64Var(&c.maxStreams)
+		f.Flag("js-consumers", "Sets the maximum Consumers the account can have").Default("-1").IsSetByUser(&c.maxConsumersIsSet).Int64Var(&c.maxConsumers)
 		f.Flag("js-disk", "Sets a Disk Storage quota").PlaceHolder("BYTES").StringVar(&c.storeMaxString)
 		f.Flag("js-disk-stream", "Sets the maximum size a Disk Storage stream may be").PlaceHolder("BYTES").Default("-1").StringVar(&c.storeMaxStreamString)
 		f.Flag("js-memory", "Sets a Memory Storage quota").PlaceHolder("BYTES").StringVar(&c.memMaxString)
 		f.Flag("js-memory-stream", "Sets the maximum size a Memory Storage stream may be").PlaceHolder("BYTES").Default("-1").StringVar(&c.memMaxStreamString)
-		f.Flag("js-max-pending", "Default Max Ack Pending for Tier 0 limits").PlaceHolder("MESSAGES").Int64Var(&c.maxAckPending)
-		f.Flag("js-stream-size-required", "Requires Streams to have a maximum size declared").UnNegatableBoolVar(&c.streamSizeRequired)
+		f.Flag("js-max-pending", "Default Max Ack Pending for Tier 0 limits").PlaceHolder("MESSAGES").IsSetByUser(&c.maxAckPendingIsSet).Int64Var(&c.maxAckPending)
+		f.Flag("js-stream-size-required", "Requires Streams to have a maximum size declared").IsSetByUser(&c.streamSizeRequiredIsSet).UnNegatableBoolVar(&c.streamSizeRequired)
 	}
 
 	add := acct.Command("add", "Adds a new Account").Action(c.addAction)
@@ -143,8 +166,49 @@ func configureAuthAccountCommand(auth commandHost) {
 	query.Arg("name", "Account to act on").Required().StringVar(&c.accountName)
 	query.Arg("output", "Saves the JWT to a file").StringVar(&c.output)
 
-	// imports := acct.Command("imports", "Manage account Imports").Alias("i").Alias("imp").Alias("import")
-	// imports.Command("ls", "List Imports").Alias("list").Action(c.importLsAction)
+	imports := acct.Command("imports", "Manage account Imports").Alias("i").Alias("imp").Alias("import")
+
+	impAdd := imports.Command("add", "Adds an Import").Alias("new").Alias("a").Alias("n").Action(c.importAddAction)
+	impAdd.Arg("name", "A unique name for the import").Required().StringVar(&c.importName)
+	impAdd.Arg("subject", "The Subject to import").Required().StringVar(&c.subject)
+	impAdd.Arg("source", "The account public key to import from").Required().StringVar(&c.importAccount)
+	impAdd.Arg("account", "Account to act on").StringVar(&c.accountName)
+	impAdd.Flag("local", "The local Subject to use for the import").StringVar(&c.localSubject)
+	impAdd.Flag("token", "Activation token to use for the import").StringVar(&c.activationToken)
+	impAdd.Flag("share", "Shares connection information with the exporter").UnNegatableBoolVar(&c.share)
+	impAdd.Flag("traceable", "Enable tracing messages across Stream imports").UnNegatableBoolVar(&c.allowTrace)
+	impAdd.Flag("service", "Sets the import to be a Service rather than a Stream").UnNegatableBoolVar(&c.isService)
+	impAdd.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
+
+	impInfo := imports.Command("info", "Show information for an Import").Alias("i").Alias("show").Alias("view").Action(c.importInfoAction)
+	impInfo.Arg("subject", "Export to view by subject").StringVar(&c.subject)
+	impInfo.Arg("account", "Account to act on").StringVar(&c.accountName)
+	impInfo.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
+
+	impEdit := imports.Command("edit", "Edits an Import").Alias("update").Action(c.importEditAction)
+	impEdit.Arg("subject", "The Local import Subject to edit").Required().StringVar(&c.subject)
+	impEdit.Arg("account", "Account to act on").StringVar(&c.accountName)
+	impEdit.Flag("local", "The local Subject to use for the import").StringVar(&c.localSubject)
+	impEdit.Flag("share", "Shares connection information with the exporter").IsSetByUser(&c.shareIsSet).UnNegatableBoolVar(&c.share)
+	impEdit.Flag("traceable", "Enable tracing messages across Stream imports").IsSetByUser(&c.allowTraceIsSet).UnNegatableBoolVar(&c.allowTrace)
+	impEdit.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
+
+	impLs := imports.Command("ls", "List Imports").Alias("list").Action(c.importLsAction)
+	impLs.Arg("account", "Account to act on").StringVar(&c.accountName)
+	impLs.Arg("operator", "Operator to act on").StringVar(&c.operatorName)
+
+	impRm := imports.Command("rm", "Removes an Import").Action(c.importRmAction)
+	impRm.Arg("subject", "Import to remove by local subject").Required().StringVar(&c.subject)
+	impRm.Arg("account", "Account to act on").StringVar(&c.accountName)
+	impRm.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
+	impRm.Flag("force", "Removes without prompting").Short('f').UnNegatableBoolVar(&c.force)
+
+	impKv := imports.Command("kv", "Imports a KV bucket").Action(c.importKvAction)
+	impKv.Arg("bucket", "The bucket to export").Required().StringVar(&c.bucketName)
+	impKv.Arg("prefix", "The prefix to mount the bucket on").Required().StringVar(&c.prefix)
+	impKv.Arg("source", "The account public key to import from").Required().StringVar(&c.importAccount)
+	impKv.Flag("token", "Activation token to use for the import").StringVar(&c.activationToken)
+	impKv.Flag("activation", "Requires an activation token").UnNegatableBoolVar(&c.tokenRequired)
 
 	exports := acct.Command("exports", "Manage account Exports").Alias("e").Alias("exp").Alias("export")
 
@@ -166,7 +230,7 @@ func configureAuthAccountCommand(auth commandHost) {
 	expInfo.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
 
 	expEdit := exports.Command("edit", "Edits an Export").Alias("update").Action(c.exportEditAction)
-	expEdit.Arg("subject", "The Subject to export").Required().StringVar(&c.subject)
+	expEdit.Arg("subject", "The Export Subject to edit").Required().StringVar(&c.subject)
 	expEdit.Arg("account", "Account to act on").StringVar(&c.accountName)
 	expEdit.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
 	expEdit.Flag("activation", "Requires an activation token").IsSetByUser(&c.tokenRequiredIsSet).BoolVar(&c.tokenRequired)
@@ -180,10 +244,14 @@ func configureAuthAccountCommand(auth commandHost) {
 	expLs.Flag("operator", "Operator to act on").StringVar(&c.operatorName)
 
 	expRm := exports.Command("rm", "Removes an Export").Action(c.exportRmAction)
-	expRm.Arg("subject", "Export to remove by subject").StringVar(&c.subject)
+	expRm.Arg("subject", "Export to remove by subject").Required().StringVar(&c.subject)
 	expRm.Arg("account", "Account to act on").StringVar(&c.accountName)
 	expRm.Flag("operator", "Operator hosting the account").StringVar(&c.operatorName)
 	expRm.Flag("force", "Removes without prompting").Short('f').UnNegatableBoolVar(&c.force)
+
+	expKv := exports.Command("kv", "Exports a KV bucket").Action(c.exportKvAction)
+	expKv.Arg("bucket", "The bucket to export").Required().StringVar(&c.bucketName)
+	expKv.Flag("activation", "Requires an activation token").UnNegatableBoolVar(&c.tokenRequired)
 
 	sk := acct.Command("keys", "Manage Scoped Signing Keys").Alias("sk").Alias("s")
 
@@ -215,308 +283,6 @@ func configureAuthAccountCommand(auth commandHost) {
 	skrm.Flag("key", "The key to remove").StringVar(&c.skRole)
 	skrm.Flag("operator", "Operator to act on").StringVar(&c.operatorName)
 	skrm.Flag("force", "Removes without prompting").Short('f').UnNegatableBoolVar(&c.force)
-}
-
-func (c *authAccountCommand) findExport(account ab.Account, subject string) ab.Export {
-	for _, exp := range account.Exports().Streams().List() {
-		if exp.Subject() == subject {
-			return exp
-		}
-	}
-	for _, exp := range account.Exports().Services().List() {
-		if exp.Subject() == subject {
-			return exp
-		}
-	}
-
-	return nil
-}
-
-func (c *authAccountCommand) exportBySubject(acct ab.Account) []ab.Export {
-	var ret []ab.Export
-
-	for _, svc := range acct.Exports().Streams().List() {
-		ret = append(ret, svc)
-	}
-	for _, svc := range acct.Exports().Services().List() {
-		ret = append(ret, svc)
-	}
-
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Subject() < ret[j].Subject()
-	})
-
-	return ret
-}
-
-func (c *authAccountCommand) exportSubjects(export ab.Exports) []string {
-	var known []string
-	for _, exp := range export.Services().List() {
-		known = append(known, exp.Subject())
-	}
-	for _, exp := range export.Streams().List() {
-		known = append(known, exp.Subject())
-	}
-
-	sort.Strings(known)
-
-	return known
-}
-
-func (c *authAccountCommand) fShowExport(w io.Writer, exp ab.Export) error {
-	out, err := c.showExport(exp)
-	if err != nil {
-		return err
-	}
-
-	_, err = fmt.Fprintln(w, out)
-	return err
-}
-
-func (c *authAccountCommand) showExport(exp ab.Export) (string, error) {
-	cols := newColumns("Export info for %s exporting %s", exp.Name(), exp.Subject())
-
-	cols.AddSectionTitle("Configuration")
-	cols.AddRow("Name", exp.Name())
-	cols.AddRowIfNotEmpty("Description", exp.Description())
-	cols.AddRowIfNotEmpty("Info", exp.InfoURL())
-	cols.AddRow("Subject", exp.Subject())
-	cols.AddRow("Activation Required", exp.TokenRequired())
-	cols.AddRow("Account Token Position", exp.AccountTokenPosition())
-	cols.AddRow("Advertised", exp.IsAdvertised())
-
-	cols.AddSectionTitle("Revocations")
-
-	if len(exp.Revocations().List()) > 0 {
-		for _, rev := range exp.Revocations().List() {
-			cols.AddRow(rev.At().Format(time.RFC3339), rev.PublicKey())
-		}
-	} else {
-		cols.Println()
-		cols.Println("No revocations found")
-	}
-
-	return cols.Render()
-}
-
-func (c *authAccountCommand) exportRmAction(_ *fisk.ParseContext) error {
-	auth, _, acct, err := c.selectAccount(true)
-	if err != nil {
-		return err
-	}
-
-	exp := c.findExport(acct, c.subject)
-	if exp == nil {
-		return fmt.Errorf("subject %q is not exported", c.subject)
-	}
-
-	if !c.force {
-		ok, err := askConfirmation(fmt.Sprintf("Really remove the %s Export", exp.Subject()), false)
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			return nil
-		}
-	}
-
-	switch exp.(type) {
-	case ab.StreamExport:
-		_, err = acct.Exports().Streams().Delete(c.subject)
-		fmt.Printf("Removing Stream Export for subject %q\n", c.subject)
-	case ab.ServiceExport:
-		_, err = acct.Exports().Services().Delete(c.subject)
-		fmt.Printf("Removing Service Export for subject %q\n", c.subject)
-	}
-	if err != nil {
-		return err
-	}
-
-	return auth.Commit()
-}
-
-func (c *authAccountCommand) exportInfoAction(_ *fisk.ParseContext) error {
-	_, _, acct, err := c.selectAccount(true)
-	if err != nil {
-		return err
-	}
-
-	if c.subject == "" {
-		known := c.exportSubjects(acct.Exports())
-
-		if len(known) == 0 {
-			return fmt.Errorf("no exports defined")
-		}
-
-		err = askOne(&survey.Select{
-			Message:  "Select an Export",
-			Options:  known,
-			PageSize: selectPageSize(len(known)),
-		}, &c.subject)
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.subject == "" {
-		return fmt.Errorf("subject is required")
-	}
-
-	exp := c.findExport(acct, c.subject)
-	if exp == nil {
-		return fmt.Errorf("unknown export")
-	}
-
-	return c.fShowExport(os.Stdout, exp)
-}
-
-func (c *authAccountCommand) exportEditAction(_ *fisk.ParseContext) error {
-	auth, _, acct, err := c.selectAccount(true)
-	if err != nil {
-		return err
-	}
-
-	exp := c.findExport(acct, c.subject)
-	if exp == nil {
-		return fmt.Errorf("export for subject %q not found", c.subject)
-	}
-
-	if c.tokenRequiredIsSet {
-		err = exp.SetTokenRequired(c.tokenRequired)
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.url != nil {
-		err = exp.SetInfoURL(c.url.String())
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.descriptionIsSet {
-		err = exp.SetDescription(c.description)
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.tokenPosition > 0 {
-		err = exp.SetAccountTokenPosition(c.tokenPosition)
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.advertiseIsSet {
-		err = exp.SetAdvertised(c.advertise)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = auth.Commit()
-	if err != nil {
-		return err
-	}
-
-	return c.fShowExport(os.Stdout, exp)
-}
-
-func (c *authAccountCommand) exportAddAction(_ *fisk.ParseContext) error {
-	auth, _, acct, err := c.selectAccount(true)
-	if err != nil {
-		return err
-	}
-
-	var exp ab.Export
-
-	if c.isService {
-		exp, err = ab.NewServiceExport(c.exportName, c.subject)
-		if err != nil {
-			return err
-		}
-	} else {
-		exp, err = ab.NewStreamExport(c.exportName, c.subject)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = exp.SetAccountTokenPosition(c.tokenPosition)
-	if err != nil {
-		return err
-	}
-	err = exp.SetAdvertised(c.advertise)
-	if err != nil {
-		return err
-	}
-	err = exp.SetDescription(c.description)
-	if err != nil {
-		return err
-	}
-	if c.url != nil {
-		err = exp.SetInfoURL(c.url.String())
-		if err != nil {
-			return err
-		}
-	}
-	err = exp.SetTokenRequired(c.tokenRequired)
-	if err != nil {
-		return err
-	}
-
-	if c.isService {
-		err = acct.Exports().Services().AddWithConfig(exp.(ab.ServiceExport))
-		if err != nil {
-			return err
-		}
-	} else {
-		err = acct.Exports().Streams().AddWithConfig(exp.(ab.StreamExport))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = auth.Commit()
-	if err != nil {
-		return err
-	}
-
-	return c.fShowExport(os.Stdout, exp)
-}
-
-func (c *authAccountCommand) exportLsAction(_ *fisk.ParseContext) error {
-	_, _, acct, err := c.selectAccount(true)
-	if err != nil {
-		return err
-	}
-
-	services := acct.Exports().Services().List()
-	streams := acct.Exports().Streams().List()
-
-	if len(services) == 0 && len(streams) == 0 {
-		fmt.Println("No Exports defined")
-		return nil
-	}
-
-	exports := c.exportBySubject(acct)
-
-	tbl := newTableWriter("Exports for account %s", acct.Name())
-	tbl.AddHeaders("Name", "Kind", "Subject", "Activation Required", "Advertised", "Token Position", "Revocations")
-	for _, e := range exports {
-		switch exp := e.(type) {
-		case ab.StreamExport:
-			tbl.AddRow(exp.Name(), "Stream", exp.Subject(), exp.TokenRequired(), exp.IsAdvertised(), exp.AccountTokenPosition(), f(len(exp.Revocations().List())))
-		case ab.ServiceExport:
-			tbl.AddRow(exp.Name(), "Service", exp.Subject(), exp.TokenRequired(), exp.IsAdvertised(), exp.AccountTokenPosition(), f(len(exp.Revocations().List())))
-		}
-	}
-	fmt.Println(tbl.Render())
-
-	return nil
 }
 
 func (c *authAccountCommand) selectAccount(pick bool) (*ab.AuthImpl, ab.Operator, ab.Account, error) {
@@ -710,12 +476,13 @@ func (c *authAccountCommand) skInfoAction(_ *fisk.ParseContext) error {
 		}
 	}
 
-	var ok bool
-	sk := acct.ScopedSigningKeys().GetScopeByRole(c.skRole)
-	if sk == nil {
-		sk, ok = acct.ScopedSigningKeys().GetScope(c.skRole)
-		if !ok {
+	sk, err := acct.ScopedSigningKeys().GetScopeByRole(c.skRole)
+	if sk == nil || errors.Is(err, ab.ErrNotFound) {
+		sk, err = acct.ScopedSigningKeys().GetScope(c.skRole)
+		if errors.Is(err, ab.ErrNotFound) {
 			return fmt.Errorf("no role or scope found matching %q", c.skRole)
+		} else if err != nil {
+			return err
 		}
 	}
 
@@ -857,8 +624,8 @@ func (c *authAccountCommand) skListAction(_ *fisk.ParseContext) error {
 		table = newTableWriter("Roles")
 		table.AddHeaders("Name", "Key")
 		for _, r := range acct.ScopedSigningKeys().ListRoles() {
-			role := acct.ScopedSigningKeys().GetScopeByRole(r)
-			if role == nil {
+			role, err := acct.ScopedSigningKeys().GetScopeByRole(r)
+			if role == nil || err != nil {
 				continue
 			}
 
@@ -880,9 +647,72 @@ func (c *authAccountCommand) editAction(_ *fisk.ParseContext) error {
 		return err
 	}
 
-	// TODO: need to think if we should support disabling jetstream here, possibly by turning
-	// --jetstream into a bool and adding an isSet variable, then we could disable it
-	err = c.updateAccount(acct, c.jetStream || acct.Limits().JetStream().IsJetStreamEnabled())
+	jsEnabled := acct.Limits().JetStream().IsJetStreamEnabled()
+	limits := acct.Limits().(operatorLimitsManager).OperatorLimits()
+	// copy existing settings into the flag settings so parsing treats those as defaults unless users set values
+	if c.maxPayloadString == "" {
+		c.maxPayloadString = strconv.Itoa(int(limits.Payload))
+	}
+	if !c.maxConnsIsSet {
+		c.maxConns = limits.Conn
+	}
+	if !c.maxSubIsSet {
+		c.maxSubs = limits.Subs
+	}
+	if !c.maxLeafNodesIsSet {
+		c.maxLeafnodes = limits.LeafNodeConn
+	}
+	if !c.maxExportsIsSet {
+		c.maxExports = limits.Exports
+	}
+	if !c.maxImportsIsSet {
+		c.maxImports = limits.Imports
+	}
+	if !c.bearerAllowedIsSet {
+		c.bearerAllowed = !limits.DisallowBearer
+	}
+
+	if jsEnabled {
+		if !c.jetStreamIsSet {
+			c.jetStream = true
+		}
+
+		jsl := limits.JetStreamLimits
+		if c.storeMaxString == "" {
+			c.storeMaxString = strconv.Itoa(int(jsl.DiskStorage))
+			log.Printf("set storeMaxString to %s\n", c.storeMaxStreamString)
+		}
+		if c.memMaxString == "" {
+			c.memMaxString = strconv.Itoa(int(jsl.MemoryStorage))
+			log.Printf("set memMaxString to %s\n", c.memMaxString)
+		}
+		if c.memMaxStreamString == "" {
+			c.memMaxStreamString = strconv.Itoa(int(jsl.MemoryMaxStreamBytes))
+		}
+		if c.storeMaxStreamString == "" {
+			c.storeMaxStreamString = strconv.Itoa(int(jsl.DiskMaxStreamBytes))
+		}
+		if !c.maxConsumersIsSet {
+			c.maxConsumers = jsl.Consumer
+		}
+		if !c.maxStreamsIsSet {
+			c.maxStreams = jsl.Streams
+		}
+		if !c.streamSizeRequiredIsSet {
+			c.streamSizeRequired = jsl.MaxBytesRequired
+		}
+		if !c.maxAckPendingIsSet {
+			c.maxAckPending = jsl.MaxAckPending
+		}
+	}
+
+	err = c.parseStringOptions()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("jsIsSet: %t enabled: %t\n", c.jetStreamIsSet, jsEnabled)
+	err = c.updateAccount(acct, c.jetStreamIsSet || jsEnabled)
 	if err != nil {
 		return err
 	}
@@ -953,7 +783,8 @@ func (c *authAccountCommand) lsAction(_ *fisk.ParseContext) error {
 	for _, acct := range list {
 		system := ""
 		js := ""
-		if acct.Subject() == operator.SystemAccount().Subject() {
+		sa, err := operator.SystemAccount()
+		if err == nil && acct.Subject() == sa.Subject() {
 			system = "true"
 		}
 		if acct.Limits().JetStream().IsJetStreamEnabled() {
@@ -985,7 +816,6 @@ func (c *authAccountCommand) updateAccount(acct ab.Account, js bool) error {
 	limits.Exports = c.maxExports
 	limits.Imports = c.maxImports
 	limits.DisallowBearer = !c.bearerAllowed
-
 	if js {
 		if c.storeMaxStream > 0 {
 			limits.JetStreamLimits.DiskMaxStreamBytes = c.storeMaxStream
@@ -1010,6 +840,60 @@ func (c *authAccountCommand) updateAccount(acct ab.Account, js bool) error {
 		err = acct.SetExpiry(time.Now().Add(c.expiry).Unix())
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *authAccountCommand) parseStringOptions() error {
+	var err error
+
+	if c.maxPayloadString != "" {
+		c.maxPayload, err = parseStringAsBytes(c.maxPayloadString)
+		if err != nil {
+			return err
+		}
+	}
+
+	if c.jetStream {
+		if c.storeMaxString == "" {
+			c.storeMax, err = askOneBytes("Maximum JetStream Disk Storage", "1GB", "Maximum amount of disk this account may use, set using --js-disk", "JetStream requires maximum Disk usage set")
+			if err != nil {
+				return err
+			}
+		}
+		if c.memMaxString == "" {
+			c.memMax, err = askOneBytes("Maximum JetStream Memory Storage", "1GB", "Maximum amount of memory this account may use, set using --js-memory", "JetStream requires maximum Memory usage set")
+			if err != nil {
+				return err
+			}
+		}
+
+		if c.storeMaxString != "" {
+			c.storeMax, err = parseStringAsBytes(c.storeMaxString)
+			if err != nil {
+				return err
+			}
+		}
+		if c.memMaxString != "" {
+			c.memMax, err = parseStringAsBytes(c.memMaxString)
+			if err != nil {
+				return err
+			}
+		}
+
+		if c.memMaxStreamString != "-1" {
+			c.memMaxStream, err = parseStringAsBytes(c.memMaxStreamString)
+			if err != nil {
+				return err
+			}
+		}
+		if c.storeMaxStreamString != "-1" {
+			c.storeMaxStream, err = parseStringAsBytes(c.storeMaxStreamString)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1067,52 +951,9 @@ func (c *authAccountCommand) addAction(_ *fisk.ParseContext) error {
 		fmt.Println()
 	}
 
-	if c.maxPayloadString != "" {
-		c.maxPayload, err = parseStringAsBytes(c.maxPayloadString)
-		if err != nil {
-			return err
-		}
-	}
-
-	if c.jetStream {
-		if c.storeMaxString == "" {
-			c.storeMax, err = askOneBytes("Maximum JetStream Disk Storage", "1GB", "Maximum amount of disk this account may use, set using --js-disk", "JetStream requires maximum Disk usage set")
-			if err != nil {
-				return err
-			}
-		}
-		if c.memMaxString == "" {
-			c.memMax, err = askOneBytes("Maximum JetStream Memory Storage", "1GB", "Maximum amount of memory this account may use, set using --js-memory", "JetStream requires maximum Memory usage set")
-			if err != nil {
-				return err
-			}
-		}
-
-		if c.storeMaxString != "" {
-			c.storeMax, err = parseStringAsBytes(c.storeMaxString)
-			if err != nil {
-				return err
-			}
-		}
-		if c.memMaxString != "" {
-			c.memMax, err = parseStringAsBytes(c.memMaxString)
-			if err != nil {
-				return err
-			}
-		}
-
-		if c.memMaxStreamString != "-1" {
-			c.memMaxStream, err = parseStringAsBytes(c.memMaxStreamString)
-			if err != nil {
-				return err
-			}
-		}
-		if c.storeMaxStreamString != "-1" {
-			c.storeMaxStream, err = parseStringAsBytes(c.storeMaxStreamString)
-			if err != nil {
-				return err
-			}
-		}
+	err = c.parseStringOptions()
+	if err != nil {
+		return err
 	}
 
 	err = c.updateAccount(acct, c.jetStream)
@@ -1154,7 +995,12 @@ func (c *authAccountCommand) showAccount(operator ab.Operator, acct ab.Account) 
 	cols.AddRow("Issuer", acct.Issuer())
 	if operator != nil {
 		cols.AddRow("Account", operator.Name())
-		cols.AddRow("System Account", operator.SystemAccount().Subject() == acct.Subject())
+		sa, err := operator.SystemAccount()
+		if err == nil {
+			cols.AddRow("System Account", sa.Subject() == acct.Subject())
+		} else {
+			cols.AddRow("System Account", false)
+		}
 	}
 	cols.AddRow("JetStream", js.IsJetStreamEnabled())
 	cols.AddRowIf("Expiry", time.Unix(acct.Expiry(), 0), acct.Expiry() > 0)

@@ -139,7 +139,7 @@ func (c *actCmd) backupAction(_ *fisk.ParseContext) error {
 	var warns []error
 
 	for _, s := range streams {
-		err = backupStream(s, false, c.snapShotConsumers, c.healthCheck, filepath.Join(c.backupDirectory, s.Name()))
+		err = backupStream(s, false, c.snapShotConsumers, c.healthCheck, filepath.Join(c.backupDirectory, s.Name()), 128*1024)
 		if errors.Is(err, jsm.ErrMemoryStreamNotSupported) {
 			fmt.Printf("Backup of %s failed: %v\n", s.Name(), err)
 			warns = append(warns, fmt.Errorf("%s: %w", s.Name(), err))
@@ -208,10 +208,11 @@ func (c *actCmd) restoreAction(kp *fisk.ParseContext) error {
 
 func (c *actCmd) reportConnectionsAction(pc *fisk.ParseContext) error {
 	cmd := SrvReportCmd{
-		topk:    c.topk,
-		sort:    c.sort,
-		subject: c.subject,
-		reverse: c.reverse,
+		topk:                    c.topk,
+		sort:                    c.sort,
+		subject:                 c.subject,
+		reverse:                 c.reverse,
+		skipDiscoverClusterSize: true,
 	}
 
 	return cmd.reportConnections(pc)
